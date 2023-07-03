@@ -13,22 +13,23 @@ body {
 
 .container-menu {
   display: flex;
+  flex-direction: column;
   flex: 1;
   align-items: center;
   justify-content: center;
   height: 100%;
   width: 100%;
-
-  background-image: url('../../../public/background/home.jpg');
-  background-size: cover;
 }
 
-.content-menu {
+.content-menu-principal {
   display: flex;
   align-items: center;
   flex-direction: column;
   width: 100vw !important;
   height: 100%;
+
+  background-image: url('../../assets/images/background-menu.jpg');
+  background-size: cover;
 }
 
 .header {
@@ -75,6 +76,7 @@ body {
   color: #192a56;
   font-size: 25px;
   font-weight: bold;
+  font-family: 'CeraProBlack', sans-serif !important;
 }
 
 .group-small-buttons-menu {
@@ -98,6 +100,7 @@ body {
   color: #00aeef;
   font-size: 23px;
   font-weight: bold;
+  font-family: 'CeraProBlack', sans-serif !important;
 }
 
 .margin {

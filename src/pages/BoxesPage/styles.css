@@ -14,9 +14,6 @@ body,
   justify-content: center;
   height: 100%;
   width: 100%;
-
-  background-image: url('../../../public/background/home.jpg');
-  background-size: cover;
 }
 
 .content-menu {

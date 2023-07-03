@@ -45,6 +45,16 @@ const DigitalCatalog = () => {
           duration: 0.5
         }}  
       />
+      {goToNextPage && (
+        <motion.div 
+          className='transition-animated'
+          initial={{ right: '-100%' }}
+          animate={{ left: '0%' }}
+          transition={{ 
+            duration: 0.8
+          }}  
+        />
+      )}  
       {backToMenu && (
         <motion.div 
         className='transition-animated'

@@ -4,23 +4,47 @@ import KioskBoard from "kioskboard";
 import "kioskboard/dist/kioskboard-2.3.0.min.css";
 import Header from "../../components/Header";
 import { motion } from 'framer-motion';
+import LocalDatabase, { Contact } from "../../services/localDatabase";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { useNavigate, useLocation } from 'react-router-dom';
 import contactImg from "../../assets/images/contact-page.png";
+import supabase from "../../services/externalDatabase";
 
 function ContactForm() {
+  const localDatabase = new LocalDatabase();
+
+  const topoRef = useRef(null);
   const nameKeyboardRef = useRef<HTMLInputElement>(null);
   const cnpjKeyboardRef = useRef<HTMLInputElement>(null);
   const corporateNameKeyboardRef = useRef<HTMLInputElement>(null);
   const emailKeyboardRef = useRef<HTMLInputElement>(null);
   const commentsKeyboardRef = useRef<HTMLTextAreaElement>(null);
 
-  const [ backToMenu, setBackToMenu ] = useState<boolean>(false)
+  const [ backToMenu, setBackToMenu ] = useState<boolean>(false);
+  const [isButtonDisabled, setIsButtonDisabled] = useState(false);
   const [resultErrors, setResultErrors] = useState<number[]>([]);
   const [productSelect, setProductSelect] = useState("TODOS")
+
+  const [goToTop, setGoToTop] = useState<boolean>(false)
+
+  const navigate = useNavigate()
+
+  const handleSelectChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    setProductSelect(event.target.value);
+    console.log(event.target.value)
+  };
+
+  useEffect(() => {
+    if (goToTop) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setGoToTop(false)
+    }
+  }, [goToTop]);
 
   useEffect(() => {
     if (nameKeyboardRef.current) {
       KioskBoard.run(nameKeyboardRef.current, {
-        language: "en",
         theme: "light",
         keysArrayOfObjects: [
           {
@@ -57,7 +81,7 @@ function ContactForm() {
           }
         ],
       });
-    }
+    } 
   }, [nameKeyboardRef]);
 
   useEffect(() => {
@@ -82,7 +106,6 @@ function ContactForm() {
           },
           {
             "0": "0",
-            "1": "."
           }
         ],
       });
@@ -166,7 +189,9 @@ function ContactForm() {
             "3": "V",
             "4": "B",
             "5": "N",
-            "6": "M"
+            "6": "M",
+            "7": "@",
+            "8": "."
           }
         ],
       });
@@ -174,7 +199,6 @@ function ContactForm() {
   }, [emailKeyboardRef]);
 
   useEffect(() => {
-
     if (commentsKeyboardRef.current) {
       KioskBoard.run(commentsKeyboardRef.current, {
         theme: "light",
@@ -216,8 +240,10 @@ function ContactForm() {
     }
   }, [commentsKeyboardRef]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setGoToTop(true)
+    // setGoToTop(true)
 
     if (
       nameKeyboardRef.current &&
@@ -249,13 +275,85 @@ function ContactForm() {
       if (!formIsValid) return
 
       const comments = commentsKeyboardRef.current.value;
+
+      setIsButtonDisabled(true)
+
+      await saveRegister(name, cnpj, email, corporateName, comments);
     }
+  }
+
+  async function saveRegister(
+    name: string, 
+    cnpj: string, 
+    email: string, 
+    corporateName: string, 
+    comments: string
+  ){
+    const data: Contact = {
+      name,
+      cnpj,
+      email,
+      corporateName,
+      productSelected: productSelect,
+      comments,
+      sync: false
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('contacts')
+        .insert([{ 
+          name,
+          cnpj,
+          email,
+          corporateName,
+          productSelected: productSelect,
+          comments,
+          sync: true,
+        }]);
+
+      if (error) {
+        throw new Error();
+      }
+
+      console.log('Dados inseridos com sucesso:', data);
+      toast.success('Enviado com sucesso!', {
+        position: "top-right",
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "colored",
+      });
+
+      setTimeout(() => {
+        navigate('/menu');
+      }, 2000);
+    } catch (error) {
+      await localDatabase.saveContact(data)
+
+      toast.success('Armazenado com sucesso!', {
+        position: "top-right",
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "colored",
+      });
+    }
+    
+    setTimeout(() => {
+      navigate('/menu')
+    }, 2000)  
   }
 
   const validateForm = (cnpj: string, email: string) => {
     let resultErrorsData = [];
     const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    console.log("chegou aqui!")
 
     if (cnpj.length !== 14) {
       resultErrorsData.push(1);
@@ -272,22 +370,8 @@ function ContactForm() {
     return true;
   }
 
-  const saveInLocalDB = (
-    name: string, 
-    cnpj: string, 
-    email: string, 
-    corporateName: string, 
-    comments: string) => {
-
-  }
-
-  const handleSelectChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    setProductSelect(event.target.value);
-    console.log(event.target.value)
-  };
-
   return (
-    <div className="container-menu-contact">
+    <div className="container-menu-contact" ref={topoRef}>
       <div className='content-menu'>
         <Header startAnimationBack={setBackToMenu} />
         <div className='content-contact'>
@@ -299,6 +383,7 @@ function ContactForm() {
                 className="inputBox"
                 ref={nameKeyboardRef}
                 type="text"
+                placeholder="Ex: José da Silva Santos"
                 data-kioskboard-type="keyboard"
               />
               {resultErrors.includes(0) && (
@@ -311,6 +396,7 @@ function ContactForm() {
                 className="inputBox"
                 ref={cnpjKeyboardRef}
                 type="text"
+                placeholder="Ex: 12345678912345"
                 data-kioskboard-type="keyboard"
               />
               {resultErrors.includes(1) && (
@@ -323,6 +409,7 @@ function ContactForm() {
                 className="inputBox"
                 ref={corporateNameKeyboardRef}
                 type="text"
+                placeholder="Minha empresa incrível!"
                 data-kioskboard-type="keyboard"
               />
               {resultErrors.includes(2) && (
@@ -335,6 +422,7 @@ function ContactForm() {
                 className="inputBox"
                 ref={emailKeyboardRef}
                 type="text"
+                placeholder="Ex: exemplo@email.com.br"
                 data-kioskboard-type="keyboard"
               />
               {resultErrors.includes(3) && (
@@ -359,7 +447,7 @@ function ContactForm() {
                 data-kioskboard-type="keyboard"
               />
             </div>
-            <button type="submit" className="item-button-submit">ENVIAR</button>
+            <button type="submit" className="item-button-submit" disabled={isButtonDisabled}>ENVIAR</button>
           </form>
         </div>
         <div className="footerBar"/>
